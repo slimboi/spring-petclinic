@@ -3,10 +3,10 @@ name: CI/CD Pipeline
 on:
   push:
     branches:
-      - main
+      - '**'  # Trigger on push to any branch
   pull_request:
     branches:
-      - main
+      - main  # Trigger on pull request only when targeting the main branch
 
 jobs:
   build-and-test:
@@ -23,8 +23,9 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+          cache: maven  # Automatically cache Maven dependencies
 
-      # Cache Maven dependencies
+      # Cache Maven dependencies manually if auto-cache doesn't work
       - name: Cache Maven packages
         uses: actions/cache@v4
         with:
@@ -37,11 +38,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=slimboi_spring-petclinic
+        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+          -Dsonar.projectKey=slimboi_spring-petclinic \
+          -Dsonar.organization=slimboi \
+          -Dsonar.host.url=https://sonarcloud.io
 
   docker-build-and-push:
     runs-on: ubuntu-latest
     needs: build-and-test
+    if: github.ref == 'refs/heads/main'  # Only push Docker image if on main branch
 
     steps:
       - name: Checkout code
@@ -65,3 +70,4 @@ jobs:
           context: .
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/spring-petclinic:latest
+          labels: latest-${{ github.ref_name }}
