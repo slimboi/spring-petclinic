@@ -32,30 +32,16 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-maven
 
-      # Build with Maven and run tests
-      - name: Build with Maven
-        run: mvn clean install -Dcheckstyle.skip=true
-
-  sonarqube-analysis:
-    runs-on: ubuntu-latest
-    needs: build-and-test
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      # Run SonarQube analysis using SonarQube GitHub Action
-      - name: SonarQube Scan
-        uses: SonarSource/sonarcloud-github-action@v2
+      # Build, test and analyze with SonarCloud
+      - name: Build and analyze
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          projectKey: spring-petclinic
-          organization: slimboi # Replace this with your SonarQube organization key
+        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=slimboi_spring-petclinic
 
   docker-build-and-push:
     runs-on: ubuntu-latest
-    needs: sonarqube-analysis
+    needs: build-and-test
 
     steps:
       - name: Checkout code
