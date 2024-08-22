@@ -73,12 +73,16 @@ jobs:
           tags: ${{ secrets.DOCKER_USERNAME }}/spring-petclinic:latest
 
       # Scan Docker image with Trivy
-      - name: Scan Docker image for vulnerabilities
-        uses: aquasecurity/trivy-action@master
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@0.24.0
         with:
           image-ref: ${{ secrets.DOCKER_USERNAME }}/spring-petclinic:latest
-          severity: HIGH,CRITICAL  # Only fail on high or critical vulnerabilities
-
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+          
       # Push Docker image to DockerHub
       - name: Push Docker image
         if: success()  # Only push if the Trivy scan was successful
